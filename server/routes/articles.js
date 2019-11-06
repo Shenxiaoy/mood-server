@@ -8,7 +8,8 @@ const resBody = configData.resBody
 
 // 发表文章列表
 router.get('/list', async (ctx, next) => {
-  const list = await db.articleModel.find()
+  const username = ctx.username
+  const list = !configData.isManager(username) ? await db.articleModel.find({username}).sort({_id: -1}) : await db.articleModel.find().sort({_id: -1})
   ctx.response.body = {
     code: 0,
     data: {
@@ -18,26 +19,58 @@ router.get('/list', async (ctx, next) => {
 })
 
 // 文章发表
-router.post('/save', (ctx, next) => {
+router.post('/save', async (ctx, next) => {
   const queryData = ctx.request.body
-  if (queryData.content) {
-    db.articleModel.create(queryData)
+  queryData.date = new Date()
+  queryData.username = ctx.cookies.get('username')
+  if (queryData.type === 1) {
+    const obj = {
+      title: queryData.title,
+      fileList: queryData.content,
+      type: queryData.type,
+      content: '',
+      date: queryData.date,
+      username: queryData.username
+    }
+    await db.articleModel.create(obj)
     ctx.response.body = {
       code: 0,
       success: '发表成功'
     }
-  } else {
-    ctx.response.body = {
-      code: 1,
-      errorMsg: '无内容'
+
+  }
+  else if (queryData.type === 2) {
+    if (queryData.content) {
+      db.articleModel.create(queryData)
+      ctx.response.body = {
+        code: 0,
+        success: '发表成功'
+      }
+    } else {
+      ctx.response.body = {
+        code: 1,
+        errorMsg: '无内容'
+      }
     }
   }
+
+})
+
+// 删除文章
+router.post('/delete', async (ctx, next) => {
+  const queryData = ctx.request.body
+  await db.articleModel.deleteOne({_id: queryData.id})
+  ctx.body = resBody.success()
+
 })
 
 // 登录
 router.post('/login', async (ctx, next) => {
+  ctx.request.body.date = new Date()
   const {username, pass} = ctx.request.body
   if (username && pass) {
+    // db.users.create(ctx.request.body)
+    // return
     const result = await db.users.findOne({username: username})
     if (result) {
       if (result.pass === pass) {
@@ -45,6 +78,7 @@ router.post('/login', async (ctx, next) => {
         const jwt = new jwtUtil(_id)
         const token = jwt.generateToken()
         ctx.cookies.set('token', token)
+        ctx.cookies.set('username', username)
         ctx.response.body = {
           code: 0,
           msg: '成功'
@@ -69,8 +103,8 @@ router.post('/login', async (ctx, next) => {
 // 是否登录态
 router.get('/selfCheck', async (ctx, next) => {
   const token = ctx.cookies.get('token')
-  const origin = ctx.req.headers.origin
-  const loginUrl = origin + '/#/login'
+  // const origin = ctx.req.headers.origin
+  // const loginUrl = origin + '/#/login'
   if (!token) {
     ctx.body = resBody.error()
   }
@@ -81,6 +115,7 @@ router.get('/selfCheck', async (ctx, next) => {
       const data = {
         username: userInfo.username
       }
+      ctx.cookies.set('username', userInfo.username)
       ctx.body = resBody.success(data, '成功是是是')
     }
     else {
@@ -89,5 +124,35 @@ router.get('/selfCheck', async (ctx, next) => {
   }
 
 })
+
+// 权限控制
+router.get('/authority', async ctx => {
+  // 随后把token校验获取username 放到中间件中存入
+  const token = ctx.cookies.get('token')
+  if (!token) {
+    ctx.body = resBody.error(null, '未登录')
+  }
+  else {
+    const result = configData.loginRealness(token)
+    if (result) {
+      const userInfo = await db.users.findOne({_id: result})
+      if (userInfo.username === 'xiuxiu') {
+        ctx.body = resBody.success({
+          code: []
+        })
+      }
+      else {
+        ctx.body = resBody.success({
+          code: ['delete']
+        })
+      }
+    } else {
+      ctx.body = resBody.error()
+
+    }
+  }
+
+})
+
 
 module.exports = router

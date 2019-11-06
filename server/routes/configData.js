@@ -15,9 +15,10 @@ function loginRealness (token) {
   }
 }
 
-// 需要登录校验的接口
-function isCheckUrl (curUrl) {
-  if (apiCheckList.includes(curUrl)) {
+// 是否是管理员
+function isManager (name) {
+  const names = ['xiuxiu']
+  if (names.includes(name)) {
     return true
   }
   else {
@@ -47,7 +48,7 @@ class resBody {
 }
 
 module.exports = {
-  isCheckUrl,
+  isManager,
   loginRealness,
   resBody
 }

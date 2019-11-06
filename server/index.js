@@ -23,6 +23,25 @@ app.use(cors({
   credentials: true,  // 配合客户端axios withCredentials=true 允许服务端可以往客户端写入cookie
 }))
 
+// 登录信息获取
+app.use(async (ctx, next) => {
+  const token = ctx.cookies.get('token')
+  if (!token) {
+    ctx.username = ''
+  }
+  else {
+    const result = configData.loginRealness(token)
+    if (!result) {
+      ctx.username = ''
+    } else {
+      const userInfo = await db.users.findOne({_id: result})
+      ctx.username = userInfo.username
+    }
+
+  }
+  await next()
+})
+
 // test
 router.get('/1', async (ctx, next) => {
   ctx.redirect('https://www.baidu.com')

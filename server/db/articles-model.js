@@ -6,19 +6,21 @@ const notesSchema = new Schema({
   title: String,
   content: String,
   auth: String,
-  time: Date,
+  date: Date,
   username: String,
   userId: Number,
   name: String,
   firstImg: String,
-  articleId: Number
+  articleId: Number,
+  fileList: Array,
+  type: Number
 })
 const articleList = mongoose.model('articleList', notesSchema)
 
 // 用户列表
 const userSchema = new Schema({
   name: String,
-  date: String,
+  date: Date,
   pass: String,
   username: String
 })
