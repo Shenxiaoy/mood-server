@@ -31,11 +31,12 @@ app.use(async (ctx, next) => {
   }
   else {
     const result = configData.loginRealness(token)
+
     if (!result) {
       ctx.username = ''
     } else {
       const userInfo = await db.users.findOne({_id: result})
-      ctx.username = userInfo.username
+      ctx.username = userInfo ? userInfo.username : ''
     }
 
   }

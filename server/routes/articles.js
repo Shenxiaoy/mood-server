@@ -69,8 +69,6 @@ router.post('/login', async (ctx, next) => {
   ctx.request.body.date = new Date()
   const {username, pass} = ctx.request.body
   if (username && pass) {
-    // db.users.create(ctx.request.body)
-    // return
     const result = await db.users.findOne({username: username})
     if (result) {
       if (result.pass === pass) {
@@ -100,7 +98,36 @@ router.post('/login', async (ctx, next) => {
 
 })
 
-// 是否登录态
+// 注册
+router.post('/signUp', async (ctx, next) => {
+  ctx.request.body.date = new Date()
+  const {username, pass, referee} = ctx.request.body
+
+  if (username && pass) {
+    // 推荐人校验
+    if (referee !== 'sxy') {
+      ctx.body = resBody.error(null, '推荐人不对')
+      return
+    }
+    // 用户名是否注册
+    const result = await db.users.findOne({username: username})
+    if (result) {
+      ctx.body = resBody.error(null, '该用户已存在')
+      return
+    }
+
+    await db.users.create(ctx.request.body)
+    ctx.body = resBody.success()
+  } else {
+    ctx.response.body = {
+      code: 1,
+      errorMsg: '请输入用户名和密码'
+    }
+  }
+
+})
+
+// 是否是登录态
 router.get('/selfCheck', async (ctx, next) => {
   const token = ctx.cookies.get('token')
   // const origin = ctx.req.headers.origin
@@ -110,8 +137,8 @@ router.get('/selfCheck', async (ctx, next) => {
   }
   else {
     const result = configData.loginRealness(token)
-    if (result) {
-      const userInfo = await db.users.findOne({_id: result})
+    const userInfo = await db.users.findOne({_id: result})
+    if (result && userInfo) {
       const data = {
         username: userInfo.username
       }
